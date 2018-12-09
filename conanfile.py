@@ -1,4 +1,5 @@
 import os
+import shutil
 from conans import ConanFile, CMake, tools
 from conans.errors import ConanInvalidConfiguration
 
@@ -141,14 +142,22 @@ class GCCMuslConan(ConanFile):
         exit(0)
 
     def build(self):
-        cmake = CMake(self)
-        cmake.configure(source_folder="hello")
-        cmake.build()
+        shutil.copyfile(os.path.join(self.source_folder, "musl-cross-make", "litecross", "Makefile"),
+                        "Makefile")
+        tools.save("config.mak", """
+TARGET = {target}
+HOST = 
+MUSL_SRCDIR = {sf}/musl-1.1.20
+GCC_SRCDIR = {sf}/gcc-6.4.0
+BINUTILS_SRCDIR = {sf}/binutils-2.27
+GMP_SRCDIR = {sf}/gmp-6.1.1
+MPC_SRCDIR = {sf}/mpc-1.0.3
+MPFR_SRCDIR = {sf}/mpfr-3.1.4
+LINUX_SRCDIR = {sf}/linux-4.4.10
+""".format(target=self.options.target, sf=self.source_folder))
 
-        # Explicit way:
-        # self.run('cmake %s/hello %s'
-        #          % (self.source_folder, cmake.command_line))
-        # self.run("cmake --build . %s" % cmake.build_config)
+        self.run("make all")
+
 
     def package(self):
         self.copy("*.h", dst="include", src="hello")
